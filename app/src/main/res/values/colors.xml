@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Toss Blue 그라디언트 색상 -->
+    <color name="focus_gradient_start">#2F80ED</color>
+    <color name="focus_gradient_end">#1447E6</color>
+    
+    <!-- 다크 배경 색상 -->
+    <color name="splash_dark_background">#121212</color>
+    
+    <!-- 기본 색상들 -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

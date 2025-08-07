@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- 배경 -->
+    <path
+        android:pathData="M0,0h108v108h-108z"
+        android:fillColor="#3182F6"/>
+    
+    <!-- 메인 아이콘 - 집중을 상징하는 원형 -->
+    <group android:translateX="54" android:translateY="54">
+        <!-- 외곽 원 -->
+        <path
+            android:pathData="M-20,0a20,20 0 1,1 40,0a20,20 0 1,1 -40,0"
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#4394FA"
+            android:strokeWidth="2"/>
+        
+        <!-- 내부 점 -->
+        <path
+            android:pathData="M-8,0a8,8 0 1,1 16,0a8,8 0 1,1 -16,0"
+            android:fillColor="#3182F6"/>
+        
+        <!-- AI를 상징하는 작은 점들 -->
+        <path
+            android:pathData="M-2,-2a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0"
+            android:fillColor="#FFFFFF"/>
+        <path
+            android:pathData="M-2,2a1.5,1.5 0 1,1 3,0a1.5,1.5 0 1,1 -3,0"
+            android:fillColor="#FFFFFF"/>
+    </group>
+    
+    <!-- Focus 텍스트 힌트 -->
+    <group android:translateX="54" android:translateY="78">
+        <path
+            android:pathData="M-12,-2L-12,2L12,2L12,-2Z"
+            android:fillColor="#9BA4B4"/>
+    </group>
+</vector>
