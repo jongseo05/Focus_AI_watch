@@ -2,6 +2,7 @@ package com.example.focus_ai.presentation.ui
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import com.example.focus_ai.data.preferences.AuthPreferences
 
 enum class AppState {
     SPLASH,
@@ -11,6 +12,8 @@ enum class AppState {
 
 @Composable
 fun AppNavigation() {
+    val context = LocalContext.current
+    val authPreferences = remember { AuthPreferences(context) }
     var currentState by remember { mutableStateOf(AppState.SPLASH) }
 
     when (currentState) {
@@ -18,6 +21,9 @@ fun AppNavigation() {
             SplashScreen(
                 onNavigateToLogin = {
                     currentState = AppState.LOGIN
+                },
+                onNavigateToMain = {
+                    currentState = AppState.MAIN
                 }
             )
         }
@@ -35,7 +41,12 @@ fun AppNavigation() {
 
         AppState.MAIN -> {
             // 기존 MainScreen 컴포넌트를 여기에 통합
-            MainScreenWrapper()
+            MainScreenWrapper(
+                onDisconnect = {
+                    // 로그인 화면으로 돌아가기
+                    currentState = AppState.LOGIN
+                }
+            )
         }
     }
 }

@@ -60,6 +60,7 @@ private fun SensorTestScreen() {
     val context = LocalContext.current
     val focusSessionService = remember { FocusSessionService(context) }
     var isSessionRunning by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf("세션 대기 중") }
     val coroutineScope = rememberCoroutineScope()
 
     Column(
@@ -70,7 +71,7 @@ private fun SensorTestScreen() {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = if (isSessionRunning) "세션 진행 중..." else "세션 대기 중",
+            text = statusMessage,
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
@@ -78,8 +79,18 @@ private fun SensorTestScreen() {
             Button(
                 onClick = {
                     coroutineScope.launch {
-                        focusSessionService.startSession()
-                        isSessionRunning = true
+                        statusMessage = "세션 시작 중..."
+                        when (val result = focusSessionService.startSession()) {
+                            is com.example.focus_ai.presentation.util.Result.Success -> {
+                                isSessionRunning = true
+                                statusMessage = "세션 진행 중..."
+                            }
+                            is com.example.focus_ai.presentation.util.Result.Failure -> {
+                                statusMessage = "오류: ${result.message}"
+                                kotlinx.coroutines.delay(3000)
+                                statusMessage = "세션 대기 중"
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
@@ -94,6 +105,7 @@ private fun SensorTestScreen() {
                     coroutineScope.launch {
                         focusSessionService.stopSession()
                         isSessionRunning = false
+                        statusMessage = "세션 대기 중"
                     }
                 },
                 modifier = Modifier

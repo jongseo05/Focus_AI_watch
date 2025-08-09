@@ -2,8 +2,8 @@ package com.example.focus_ai.data.work
 
 import android.content.Context
 import androidx.work.*
-import com.example.focus_ai.data.api.TelemetryApi
-import com.example.focus_ai.data.model.Telemetry
+import com.example.focus_ai.data.api.SupabaseApi
+import com.example.focus_ai.data.model.SensorSampleRequest
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,14 +18,14 @@ class TelemetryUploadWorker(
 ) : CoroutineWorker(context, workerParams) {
     
     companion object {
-        private const val KEY_TELEMETRY_JSON = "telemetry_json"
+        private const val KEY_SENSOR_DATA_JSON = "sensor_data_json"
         private const val KEY_JWT_TOKEN = "jwt_token"
-        private const val BASE_URL = "https://your-api-server.com/api/" // TODO: 실제 서버 URL로 변경
+        private const val BASE_URL = "https://yxlpmsolfxvxhdebtixc.supabase.co/"
         
-        fun createWorkRequest(telemetry: Telemetry, jwtToken: String): OneTimeWorkRequest {
+        fun createWorkRequest(sensorData: SensorSampleRequest, jwtToken: String): OneTimeWorkRequest {
             val gson = Gson()
             val inputData = Data.Builder()
-                .putString(KEY_TELEMETRY_JSON, gson.toJson(telemetry))
+                .putString(KEY_SENSOR_DATA_JSON, gson.toJson(sensorData))
                 .putString(KEY_JWT_TOKEN, jwtToken)
                 .build()
             
@@ -50,23 +50,23 @@ class TelemetryUploadWorker(
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(TelemetryApi::class.java)
+            .create(SupabaseApi::class.java)
     }
     
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
-            val telemetryJson = inputData.getString(KEY_TELEMETRY_JSON)
+            val sensorDataJson = inputData.getString(KEY_SENSOR_DATA_JSON)
                 ?: return@withContext Result.failure()
             
             val jwtToken = inputData.getString(KEY_JWT_TOKEN)
                 ?: return@withContext Result.failure()
             
             val gson = Gson()
-            val telemetry = gson.fromJson(telemetryJson, Telemetry::class.java)
+            val sensorData = gson.fromJson(sensorDataJson, SensorSampleRequest::class.java)
             
-            val response = api.uploadTelemetry(
+            val response = api.uploadSensorData(
                 authorization = "Bearer $jwtToken",
-                telemetry = telemetry
+                request = sensorData
             )
             
             if (response.isSuccessful) {

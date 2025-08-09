@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.util.Log
 import com.example.focus_ai.data.model.Telemetry
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -28,8 +29,6 @@ class SensorCollector(private val context: Context) {
     private val heartRateValues = mutableListOf<Float>()
     private val accelerometerRmsValues = mutableListOf<Float>()
     private val dataLock = Any()
-    
-    fun isRunning() = isRunning
     
     private val heartRateListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
@@ -120,11 +119,20 @@ class SensorCollector(private val context: Context) {
             Pair(hr, acc)
         }
         
-        // 집계 계산
-        val hrMean = hrValues.averageOrNaN().takeIf { !it.isNaN() }
-        val hrStd = hrValues.stdOrNaN().takeIf { !it.isNaN() }
-        val accRms = accValues.averageOrNaN().takeIf { !it.isNaN() }
-        val accStd = accValues.stdOrNaN().takeIf { !it.isNaN() }
+        // 집계 계산 - null safety 개선
+        val hrMean = if (hrValues.isEmpty()) null else hrValues.average().toFloat()
+        val hrStd = if (hrValues.isEmpty() || hrValues.size < 2) null else {
+            val mean = hrValues.average()
+            val variance = hrValues.map { (it - mean) * (it - mean) }.average()
+            kotlin.math.sqrt(variance).toFloat()
+        }
+        
+        val accRms = if (accValues.isEmpty()) null else accValues.average().toFloat()
+        val accStd = if (accValues.isEmpty() || accValues.size < 2) null else {
+            val mean = accValues.average()
+            val variance = accValues.map { (it - mean) * (it - mean) }.average()
+            kotlin.math.sqrt(variance).toFloat()
+        }
         
         val telemetry = Telemetry(
             timestamp = currentTime,
@@ -135,5 +143,9 @@ class SensorCollector(private val context: Context) {
         )
         
         _telemetryFlow.emit(telemetry)
+    }
+    
+    fun isRunning(): Boolean {
+        return isRunning
     }
 }

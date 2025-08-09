@@ -2,8 +2,12 @@ package com.example.focus_ai.domain.service
 
 import android.content.Context
 import androidx.work.WorkManager
+import com.example.focus_ai.data.mapper.TelemetryMapper
+import com.example.focus_ai.data.preferences.AuthPreferences
+import com.example.focus_ai.data.repository.AuthRepository
 import com.example.focus_ai.data.sensor.SensorCollector
 import com.example.focus_ai.data.work.TelemetryUploadWorker
+import com.example.focus_ai.presentation.util.Result
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -12,26 +16,48 @@ import kotlinx.coroutines.flow.onEach
 
 class FocusSessionService(private val context: Context) {
     
-    companion object {
-        // TODO: 실제 JWT 토큰으로 교체하거나 로그인 시스템에서 가져오도록 수정
-        private const val DEFAULT_JWT_TOKEN = "your_jwt_token_here"
-    }
-    
     private val sensorCollector = SensorCollector(context)
     private val workManager = WorkManager.getInstance(context)
+    private val authPreferences = AuthPreferences(context)
+    private val authRepository = AuthRepository()
     private var telemetryJob: Job? = null
     
-    fun startSession(jwtToken: String = DEFAULT_JWT_TOKEN) {
+    suspend fun startSession(): Result<String> {
+        // 인증 확인
+        val jwtToken = authPreferences.jwtToken
+        if (jwtToken.isNullOrEmpty()) {
+            return Result.Failure("인증이 필요합니다. 먼저 페어링 코드를 입력해주세요.")
+        }
+        
+        // 기존 세션이 있으면 사용, 없으면 새로 시작
+        var sessionId = authPreferences.sessionId
+        if (sessionId.isNullOrEmpty()) {
+            when (val sessionResult = authRepository.startSession(jwtToken)) {
+                is Result.Success -> {
+                    sessionId = sessionResult.value.sessionId
+                    authPreferences.sessionId = sessionId
+                    authPreferences.isConnected = true
+                }
+                is Result.Failure -> {
+                    return Result.Failure("세션 시작에 실패했습니다: ${sessionResult.message}")
+                }
+            }
+        }
+        
         // 센서 수집 시작
         sensorCollector.start()
         
         // 텔레메트리 업로드 작업 설정
         telemetryJob = sensorCollector.telemetryFlow
             .onEach { telemetry ->
-                val workRequest = TelemetryUploadWorker.createWorkRequest(telemetry, jwtToken)
+                // Telemetry를 SensorSampleRequest로 변환
+                val sensorData = TelemetryMapper.mapToSensorSampleRequest(telemetry, sessionId!!)
+                val workRequest = TelemetryUploadWorker.createWorkRequest(sensorData, jwtToken)
                 workManager.enqueue(workRequest)
             }
             .launchIn(CoroutineScope(Dispatchers.IO))
+        
+        return Result.Success("세션이 시작되었습니다")
     }
     
     fun stopSession() {

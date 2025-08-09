@@ -17,21 +17,46 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.material.*
+import com.example.focus_ai.data.preferences.AuthPreferences
+import com.example.focus_ai.data.repository.FocusRepository
 import com.example.focus_ai.presentation.ui.components.CodeBoxInput
 import com.example.focus_ai.presentation.util.Result
 import com.example.focus_ai.presentation.util.VibratorWrapper
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// 페어링 코드 검증 함수 (실제 구현에서는 네트워크 요청)
-suspend fun validatePairingCode(code: String): Result<String> {
-    // 네트워크 지연 시뮬레이션
-    delay(1000)
-    
-    return if (code == "1234") {
-        Result.Success("auth_token_example")
-    } else {
-        Result.Failure("코드가 올바르지 않습니다")
+// 페어링 코드 검증 함수 (실제 Supabase API와 연동)
+suspend fun validatePairingCode(code: String, context: android.content.Context): Result<String> {
+    return try {
+        println("DEBUG NewPairingScreen: Starting validation for code: $code")
+        
+        val authPreferences = AuthPreferences(context)
+        val focusRepository = FocusRepository(context)
+        val deviceId = "watch-${System.currentTimeMillis()}"
+        
+        println("DEBUG NewPairingScreen: Created FocusRepository, deviceId: $deviceId")
+        
+        val success = focusRepository.authenticateWithCode(code, deviceId)
+        
+        if (success) {
+            println("DEBUG NewPairingScreen: Authentication successful")
+            
+            // 인증 정보 저장
+            authPreferences.isConnected = true
+            
+            // 세션도 바로 시작
+            val sessionStarted = focusRepository.startFocusSession()
+            println("DEBUG NewPairingScreen: Session start result: $sessionStarted")
+            
+            Result.Success("authentication_successful")
+        } else {
+            println("DEBUG NewPairingScreen: Authentication failed")
+            Result.Failure("잘못된 코드입니다")
+        }
+    } catch (e: Exception) {
+        println("DEBUG NewPairingScreen: Exception caught: ${e.message}")
+        e.printStackTrace()
+        Result.Failure("예상치 못한 오류: ${e.message}")
     }
 }
 
@@ -58,7 +83,7 @@ fun NewPairingScreen(
             errorMsg = null
             VibratorWrapper.click()
             
-            when (val result = validatePairingCode(code)) {
+            when (val result = validatePairingCode(code, context)) {
                 is Result.Success -> {
                     VibratorWrapper.success()
                     onSuccess(result.value)

@@ -35,7 +35,8 @@ fun MainScreen(
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onDisconnect: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -197,6 +198,30 @@ fun MainScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+        
+        // 하단 연결 해제 버튼 - 세션이 중지된 상태에서만 표시
+        if (sessionState == FocusSessionState.Idle) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(
+                    onClick = onDisconnect,
+                    modifier = Modifier.padding(4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color.Transparent
+                    )
+                ) {
+                    Text(
+                        text = "연결 해제",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 11.sp
+                    )
                 }
             }
         }

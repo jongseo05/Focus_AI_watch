@@ -4,20 +4,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import com.example.focus_ai.data.repository.FocusRepository
 import com.example.focus_ai.domain.service.FocusSessionService
 import com.example.focus_ai.presentation.model.FocusSessionState
 import com.example.focus_ai.presentation.util.VibratorWrapper
 import kotlinx.coroutines.*
 
 @Composable
-fun MainScreenWrapper() {
+fun MainScreenWrapper(
+    onDisconnect: (() -> Unit)? = null
+) {
     val sessionState = remember { mutableStateOf(FocusSessionState.Idle) }
     val elapsedTime = remember { mutableStateOf(0) }
     var timerJob by remember { mutableStateOf<Job?>(null) }
     val context = LocalContext.current
     
-    // 센서 서비스 초기화
+    // 센서 서비스와 Repository 초기화
     val focusSessionService = remember { FocusSessionService(context) }
+    val focusRepository = remember { FocusRepository(context) }
     
     // Lifecycle-aware CoroutineScope 사용
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -37,7 +41,9 @@ fun MainScreenWrapper() {
             elapsedTime.value = 0
             
             // 센서 수집 및 업로드 시작
-            focusSessionService.startSession()
+            coroutineScope.launch {
+                focusSessionService.startSession()
+            }
             
             timerJob?.cancel()
             timerJob = coroutineScope.launch {
@@ -71,6 +77,21 @@ fun MainScreenWrapper() {
             focusSessionService.stopSession()
             
             timerJob?.cancel()
+        },
+        onDisconnect = {
+            VibratorWrapper.click()
+            
+            // 모든 세션 정리
+            sessionState.value = FocusSessionState.Idle
+            elapsedTime.value = 0
+            timerJob?.cancel()
+            focusSessionService.stopSession()
+            
+            // 인증 정보 삭제 및 연결 해제
+            focusRepository.disconnect()
+            
+            // 상위 콜백 호출 (로그인 화면으로 이동)
+            onDisconnect?.invoke()
         }
     )
 
